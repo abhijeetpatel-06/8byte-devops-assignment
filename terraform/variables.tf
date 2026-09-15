@@ -107,7 +107,7 @@ variable "ssh_allowed_cidr" {
 variable "db_engine_version" {
   description = "Postgres engine version"
   type        = string
-  default     = "16.4"
+  default     = "15"
 }
 
 variable "db_instance_class" {
@@ -155,7 +155,7 @@ variable "db_multi_az" {
 variable "db_backup_retention_days" {
   description = "How many days to keep automated RDS backups"
   type        = number
-  default     = 7
+  default     = 0
 }
 
 variable "db_deletion_protection" {

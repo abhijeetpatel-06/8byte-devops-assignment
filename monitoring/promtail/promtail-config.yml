@@ -1,58 +1,21 @@
-# promtail-config.yml
-# ------------------------------------------------------------------
-# Ye agent har server pe chalta hai aur log files padh ke Loki ko
-# push karta hai. Naye log source add karne ho to bas ek naya
-# "job_name" block neeche add kar dena, pattern same rahega.
-
 server:
   http_listen_port: 9080
-  grpc_listen_port: 0
 
 positions:
-  # yaha track hota hai ki promtail ne file me kaha tak padha hai,
-  # restart hone pe dubara se shuru nahi karega
-  filename: /var/lib/promtail/positions.yaml
+  filename: /tmp/positions.yaml
 
 clients:
-  - url: http://__SERVER_IP__:__LOKI_PORT__/loki/api/v1/push
+  - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # System ke general logs (syslog / auth etc.)
-  - job_name: syslog
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: syslog
-          host: __SERVER_HOSTNAME__
-          __path__: /var/log/syslog
 
-  - job_name: auth_log
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: auth
-          host: __SERVER_HOSTNAME__
-          __path__: /var/log/auth.log
+  - job_name: system-logs
 
-  # Nginx access/error logs - agar nginx use kar rahe ho to kaam aayega,
-  # nahi to isse hata dena, harm nahi karega but useless entries banega
-  - job_name: nginx
     static_configs:
       - targets:
           - localhost
-        labels:
-          job: nginx
-          host: __SERVER_HOSTNAME__
-          __path__: /var/log/nginx/*.log
 
-  # Apni application ki log file - path config.env me APP_LOG_PATH se set hota hai
-  - job_name: application
-    static_configs:
-      - targets:
-          - localhost
         labels:
-          job: application
-          host: __SERVER_HOSTNAME__
-          __path__: __APP_LOG_PATH__
+          job: varlogs
+          host: ec2
+          __path__: /var/log/*.log

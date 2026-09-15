@@ -1,33 +1,15 @@
-# loki-config.yml
-# ------------------------------------------------------------------
-# Single-node Loki setup - chhote/medium servers ke liye kaafi hai.
-# Agar traffic bahut zyada ho jaye future me to isko S3/object storage
-# backend pe migrate karna padega, but abhi filesystem theek hai.
-
 auth_enabled: false
 
 server:
-  http_listen_port: __LOKI_PORT__
-  grpc_listen_port: 9096
+  http_listen_port: 3100
 
 common:
-  path_prefix: __LOKI_DATA_DIR__
-  storage:
-    filesystem:
-      chunks_directory: __LOKI_DATA_DIR__/chunks
-      rules_directory: __LOKI_DATA_DIR__/rules
-  replication_factor: 1
-  ring:
-    instance_addr: 127.0.0.1
-    kvstore:
-      store: inmemory
+  path_prefix: /tmp/loki
 
-query_range:
-  results_cache:
-    cache:
-      embedded_cache:
-        enabled: true
-        max_size_mb: 100
+storage:
+  filesystem:
+    chunks_directory: /tmp/loki/chunks
+    rules_directory: /tmp/loki/rules
 
 schema_config:
   configs:
@@ -40,15 +22,4 @@ schema_config:
         period: 24h
 
 ruler:
-  alertmanager_url: http://__SERVER_IP__:__ALERTMANAGER_PORT__
-
-# Purane logs khud-ba-khud delete ho jaye, disk bharne se bachne ke liye
-limits_config:
-  retention_period: 336h   # 14 din, zarurat ho to badha lena
-  reject_old_samples: true
-  reject_old_samples_max_age: 168h
-
-compactor:
-  working_directory: __LOKI_DATA_DIR__/compactor
-  retention_enabled: true
-  delete_request_store: filesystem
+  alertmanager_url: http://localhost:9093

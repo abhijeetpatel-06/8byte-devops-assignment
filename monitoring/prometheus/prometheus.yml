@@ -1,53 +1,14 @@
-# prometheus.yml
-# ------------------------------------------------------------------
-# Isme jo bhi __XXX__ dikh raha hai wo placeholder hai - ye script
-# (scripts/apply_config.sh) config.env ke actual values se replace
-# kar deti hai. Manually edit karna hai to seedha config.env change
-# karo aur apply_config.sh dobara chala do, isse hi mat chhed do
-# warna next run me overwrite ho jayega.
-
 global:
-  scrape_interval: __SCRAPE_INTERVAL__
-  evaluation_interval: __EVAL_INTERVAL__
-  external_labels:
-    monitor: '__SERVER_HOSTNAME__'
-
-# Alertmanager ko rules ke alerts yahi bhejta hai
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-            - "__SERVER_IP__:__ALERTMANAGER_PORT__"
-
-# Alert rules alag file me, taki ye file saaf rahe
-rule_files:
-  - "alert_rules.yml"
+  scrape_interval: 15s
 
 scrape_configs:
-  # Prometheus khud ko bhi scrape karta hai, self-monitoring ke liye
-  - job_name: "prometheus"
-    static_configs:
-      - targets: ["localhost:__PROMETHEUS_PORT__"]
 
-  # Server level metrics - CPU, RAM, Disk, Network
-  - job_name: "node_exporter"
+  - job_name: prometheus
     static_configs:
-      - targets: ["__SERVER_IP__:__NODE_EXPORTER_PORT__"]
-        labels:
-          env: "production"
+      - targets:
+          - prometheus:9090
 
-  # Apni application agar /metrics expose kar rahi hai to yaha
-  # add kar do. Port change karna mat bhoolna.
-  - job_name: "application"
-    metrics_path: /metrics
+  - job_name: node-exporter
     static_configs:
-      - targets: ["__SERVER_IP__:8080"]
-        labels:
-          service: "backend-api"
-
-  # Agar database exporter (mysqld_exporter / postgres_exporter) laga rakha
-  # hai to uska target yaha daal dena, abhi ke liye commented rakha hai
-  # taki agar exporter nahi hai to prometheus "down" target ka noise na kare.
-  # - job_name: "database"
-  #   static_configs:
-  #     - targets: ["__SERVER_IP__:9187"]
+      - targets:
+          - node-exporter:9100
