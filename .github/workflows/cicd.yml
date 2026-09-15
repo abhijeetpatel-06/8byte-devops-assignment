@@ -10,7 +10,7 @@ on:
       - main
 
 env:
-  IMAGE_NAME: abhijeet06/todo-app
+  IMAGE_NAME: abhijeetpatel/todo-app
 
 jobs:
 
