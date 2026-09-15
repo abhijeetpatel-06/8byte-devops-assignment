@@ -1,0 +1,18 @@
+[Unit]
+Description=Promtail - log files padh ke Loki ko bhejta hai
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+# root isliye rakha hai kyuki /var/log ke andar kai files root-owned
+# hoti hain (auth.log waghera) - agar security ko lekar strict ho to
+# promtail user ko adm group me daal ke usse chala sakte ho.
+User=root
+ExecStart=/usr/local/bin/promtail --config.file=__PROMTAIL_CONFIG_DIR__/promtail-config.yml
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,64 @@
+# alertmanager.yml
+# ------------------------------------------------------------------
+# Alerts kaha route honge iski config. __XXX__ placeholders
+# apply_config.sh replace karega config.env ki values se.
+
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: '__SMTP_HOST__'
+  smtp_from: '__ALERT_EMAIL_FROM__'
+  smtp_auth_username: '__SMTP_USER__'
+  smtp_auth_password: '__SMTP_PASSWORD__'
+  smtp_require_tls: true
+
+# Same tarah ke alerts ko group karke ek hi notification me bhejne
+# ke liye - warna 10 alerts ek saath fire honge to 10 alag messages aa jayenge
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: 'default-receiver'
+  routes:
+    # Critical wale turant slack pe bhi aur email pe bhi
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+
+receivers:
+  - name: 'default-receiver'
+    email_configs:
+      - to: '__ALERT_EMAIL_TO__'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    slack_configs:
+      - api_url: '__SLACK_WEBHOOK_URL__'
+        channel: '__SLACK_CHANNEL__'
+        send_resolved: true
+        title: "🔴 CRITICAL: {{ .CommonLabels.alertname }}"
+        text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+    email_configs:
+      - to: '__ALERT_EMAIL_TO__'
+        send_resolved: true
+
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '__SLACK_WEBHOOK_URL__'
+        channel: '__SLACK_CHANNEL__'
+        send_resolved: true
+        title: "🟡 WARNING: {{ .CommonLabels.alertname }}"
+        text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+
+# Isse ek hi tarah ke bahut saare alerts spam nahi karte jab underlying
+# cause same ho (e.g. node down hone se CPU/disk alerts bhi fire honge)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
