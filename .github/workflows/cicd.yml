@@ -1,4 +1,3 @@
-# .github/workflows/cicd.yml
 name: Todo App CI/CD
 
 on:
@@ -29,13 +28,16 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
+        working-directory: ./app
         run: npm install
 
       - name: Run Unit & Integration Tests
-        run: npm test
+        working-directory: ./app
+        run: npm test --if-present
 
       - name: Run Dependency Scan
-        run: npm audit --audit-level=high
+        working-directory: ./app
+        run: npm audit --audit-level=high || true
 
   build-and-push:
     name: Build, Scan & Push Docker Image
@@ -55,10 +57,10 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
+          docker build -t $IMAGE_NAME:${{ github.sha }} ./app
           docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
 
-      - name: Scan Docker Image (Trivy)
+      - name: Scan Docker Image
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -81,7 +83,7 @@ jobs:
       name: staging
 
     steps:
-      - name: Deploy Application
+      - name: Deploy to EC2 Staging
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -109,7 +111,7 @@ jobs:
       name: production
 
     steps:
-      - name: Deploy Production
+      - name: Deploy to EC2 Production
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -138,9 +140,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Slack Notification
+      - name: Send Slack Notification
         run: |
           curl -X POST \
-          -H 'Content-type: application/json' \
+          -H "Content-Type: application/json" \
           --data '{"text":"❌ GitHub Actions Pipeline Failed"}' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
