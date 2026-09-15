@@ -1,0 +1,146 @@
+# .github/workflows/cicd.yml
+name: Todo App CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: abhijeet06/todo-app
+
+jobs:
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Unit & Integration Tests
+        run: npm test
+
+      - name: Run Dependency Scan
+        run: npm audit --audit-level=high
+
+  build-and-push:
+    name: Build, Scan & Push Docker Image
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
+          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
+
+      - name: Scan Docker Image (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          exit-code: 0
+          severity: HIGH,CRITICAL
+
+      - name: Push Docker Image
+        run: |
+          docker push $IMAGE_NAME:${{ github.sha }}
+          docker push $IMAGE_NAME:latest
+
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.event_name == 'push'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    environment:
+      name: staging
+
+    steps:
+      - name: Deploy Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull $IMAGE_NAME:latest
+
+            docker stop todo-app || true
+            docker rm todo-app || true
+
+            docker run -d \
+              --name todo-app \
+              -p 8000:8000 \
+              --restart unless-stopped \
+              $IMAGE_NAME:latest
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.event_name == 'push'
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Deploy Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull $IMAGE_NAME:latest
+
+            docker stop todo-app || true
+            docker rm todo-app || true
+
+            docker run -d \
+              --name todo-app \
+              -p 8000:8000 \
+              --restart unless-stopped \
+              $IMAGE_NAME:latest
+
+  notify:
+    name: Failure Notification
+    if: failure()
+    needs:
+      - test
+      - build-and-push
+      - deploy-staging
+      - deploy-production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Slack Notification
+        run: |
+          curl -X POST \
+          -H 'Content-type: application/json' \
+          --data '{"text":"❌ GitHub Actions Pipeline Failed"}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
