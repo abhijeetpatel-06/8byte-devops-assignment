@@ -90,7 +90,7 @@ resource "aws_launch_template" "app" {
 
 resource "aws_autoscaling_group" "app" {
   name_prefix         = "${var.project_name}-asg-"
-  vpc_zone_identifier = aws_subnet.private[*].id
+  vpc_zone_identifier = aws_subnet.public[*].id
   min_size            = var.asg_min_size
   max_size            = var.asg_max_size
   desired_capacity    = var.asg_desired_capacity
