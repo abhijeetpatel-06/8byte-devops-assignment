@@ -1,5 +1,5 @@
 # 8Byte DevOps Assignment
-
+I also use AI for better documantion.
 ## Overview
 
 This project demonstrates an end-to-end DevOps workflow covering infrastructure provisioning, deployment automation, monitoring, logging, and documentation.
