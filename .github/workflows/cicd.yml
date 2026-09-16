@@ -90,7 +90,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull $IMAGE_NAME:latest
+            docker pull abhijeetpatel/todo-app:latest
 
             docker stop todo-app || true
             docker rm todo-app || true
@@ -99,8 +99,7 @@ jobs:
               --name todo-app \
               -p 8000:8000 \
               --restart unless-stopped \
-              $IMAGE_NAME:latest
-
+              abhijeetpatel/todo-app:latest
   deploy-production:
     name: Deploy to Production
     if: github.event_name == 'push'
